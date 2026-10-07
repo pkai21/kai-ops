@@ -40,7 +40,27 @@ jobs:
       - run: terraform fmt -check -recursive
       - run: terraform init -input=false
       - run: terraform validate
-      - run: terraform plan -input=false
+
+      - name: Import existing shared infrastructure
+        shell: bash
+        run: |
+          terraform state show kubernetes_namespace.monitoring >/dev/null 2>&1 || \
+            terraform import kubernetes_namespace.monitoring monitoring
+
+          terraform state show kubernetes_namespace.argocd >/dev/null 2>&1 || \
+            terraform import kubernetes_namespace.argocd argocd
+
+          terraform state show helm_release.kube_prometheus_stack >/dev/null 2>&1 || \
+            terraform import helm_release.kube_prometheus_stack monitoring/monitoring
+
+          terraform state show helm_release.argocd >/dev/null 2>&1 || \
+            terraform import helm_release.argocd argocd/argocd
+
+          terraform state show helm_release.argocd_apps >/dev/null 2>&1 || \
+            terraform import helm_release.argocd_apps argocd/argocd-apps
+        
+      - name: Terraform Plan
+        run: terraform plan -input=false
 
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false
